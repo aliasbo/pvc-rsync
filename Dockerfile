@@ -23,10 +23,14 @@ RUN \
 
 COPY entrypoint.sh /usr/local/bin
 
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 VOLUME $RSYNC_DEST
 
 USER $UID
 
-ENTRYPOINT ["entrypoint.sh"]
+WORKDIR /mnt
 
-#CMD [ "/bin/sh", "-c" , "while true; do sleep 10; done" ]
+#ENTRYPOINT ["entrypoint.sh"]
+
+CMD [ "/bin/sh", "-c" , "while true; do sleep 10; done" ]

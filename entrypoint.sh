@@ -22,19 +22,20 @@ is_rsync() {
   local container=$1
   local rsync_bin="/usr/bin/rsync"
 
-  local pod=$( oc get pod -l name=$container -o name | head -1 )  
+  local pod=$( oc get pod -l app=$container -o name | head -1 )
 
-  if ! oc rsh $pod -c $container test -f $rsync_bin
+  echo "oc rsh $pod -c $container test -f $rsync_bin"
+  if ! oc rsh $pod test -f $rsync_bin
   then
-    syncpvc_error $'rsync binary not found in '$rsync_bin 
+    syncpvc_error $'rsync binary not found in '$rsync_bin
   fi
 
 }
 
-# Verify that the minimally required settings are set 
+# Verify that the minimally required settings are set
 verify_minimum_env() {
 	if [ -z "$RSYNC_SOURCE" -a -z "$TOKEN" -a -z "$NAMESPACE" -a -z "$APPNAME" ]; then
-		syncpvc_error $'You need to specify RSYNC_SOURCE, TOKEN, NAMESPACE, APPNAME'
+		syncpvc_error $'You need to specify RSYNC_SOURCE, TOKEN, NAMESPACE, APPNAME, CLUSTER'
 	fi
 }
 
@@ -43,11 +44,15 @@ main () {
   local src_path="$RSYNC_SOURCE"
   local dst_path="$RSYNC_DEST"
   local token="$TOKEN"
+  local cluster="$CLUSTER"
   local namespace="$NAMESPACE"
   local app="$APPNAME"
 
-  echo "oc login --token"
-  if ! oc login --token=$token
+  echo "verify_minimum_env"
+  verify_minimum_env
+
+  echo "oc login --token=$token $cluster --insecure-skip-tls-verify=true"
+  if ! oc login --token=$token $cluster --insecure-skip-tls-verify=true
   then
       syncpvc_error $'Unable to login using the provided token '$token
   fi
@@ -61,7 +66,7 @@ main () {
   echo "is_rsync $app"
   is_rsync $app
 
-  local pod=$( oc get pod -l name=$app -o name | head -1 )  
+  local pod=$( oc get pod -l app=$app -o name | head -1 )
   echo "oc rsync ${pod}:$src_path $dst_path"
   oc rsync --progress=true ${pod}:$src_path $dst_path
 
